@@ -1,0 +1,298 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<title>Zero Global ASPD Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#FAEBD7; --panel:#FBEFD5; --ink:#2b1d0e; --muted:#6b5232; --line:#d2b48c; --field:#FDF5E6; --head:#F5DEB3;
+  --accent:#8b5a2b; --accent-ink:#fffaf0; --band:#f0d9a8;
+  --warn-bg:#f8e2b0; --warn-ink:#6a4300; --ok-bg:#e4ebc9; --ok-ink:#3a4f14;
+  --display:"Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+  --body:"Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+  --mono:"Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1c160e; --panel:#271f14; --ink:#f0e2c4; --muted:#bca57d; --line:#4a3a24; --field:#30261a; --head:#3a2d1c;
+  --accent:#d9a560; --accent-ink:#1c140a; --band:#3d2f1d;
+  --warn-bg:#3a2c10; --warn-ink:#f3cf8a; --ok-bg:#29301a; --ok-ink:#c9dc9a;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1c160e; --panel:#271f14; --ink:#f0e2c4; --muted:#bca57d; --line:#4a3a24; --field:#30261a; --head:#3a2d1c;
+  --accent:#d9a560; --accent-ink:#1c140a; --band:#3d2f1d;
+  --warn-bg:#3a2c10; --warn-ink:#f3cf8a; --ok-bg:#29301a; --ok-ink:#c9dc9a;
+  color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1150px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.02em;margin:0;line-height:1.1}
+.sub{color:var(--muted);margin:4px 0 22px;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,410px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:18px}
+.label{font-family:var(--display);font-weight:700;font-size:1rem;color:var(--ink);margin:16px 0 8px}
+.label:first-child{margin-top:0}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.f{display:flex;flex-direction:column;gap:3px;min-width:0}
+.f.wide{grid-column:1/-1}
+.f label,.chk span.n{font-family:var(--display);font-weight:700;font-size:.85rem;letter-spacing:.04em;color:var(--muted)}
+.f input,.f select{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1rem;padding:7px 9px;border:1px solid var(--line);border-radius:0;background:var(--field);color:var(--ink);width:100%}
+.f select{font-family:var(--body)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.checks{display:flex;flex-direction:column;gap:8px}
+.chk{display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap}
+.chk label{white-space:nowrap}
+.chk input[type=checkbox],.chk input[type=radio]{width:18px;height:18px;accent-color:var(--accent);margin:0}
+.chk label{cursor:pointer}
+.chk.off{opacity:.45}
+.chk.off label{cursor:not-allowed}
+.chk .desc{font-size:.82rem;color:var(--muted)}
+.chk input[type=number]{width:64px;font-family:var(--mono);font-variant-numeric:tabular-nums;padding:4px 6px;border:1px solid var(--line);border-radius:0;background:var(--field);color:var(--ink)}
+.none{font-size:.88rem;color:var(--muted);margin:0}
+.aspdline{font-size:1.5rem;font-weight:700;margin:0}
+.aspdline strong{font-weight:700;font-variant-numeric:tabular-nums}
+#finalTxt{font-weight:400}
+#finalTxt{font-size:1rem;color:var(--muted)}
+.note{font-size:.9rem;padding:7px 10px;border-radius:0;margin-top:10px}
+.note.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.note.ok{background:var(--ok-bg);color:var(--ok-ink)}
+h2{font-family:var(--display);font-weight:700;font-size:1.05rem;letter-spacing:.04em;margin:22px 0 8px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--display);font-weight:700;font-size:.95rem;color:var(--ink);background:var(--head);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+td.num{font-family:var(--mono)}
+.small{font-size:.85rem;color:var(--muted)}
+.breakdown td:first-child{color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <h1 style="margin-bottom:20px">Zero Global ASPD Calculator</h1>
+  <div class="grid">
+    <form class="panel" id="form" autocomplete="off" onsubmit="return false">
+      <p class="label">Character</p>
+      <div class="fields">
+        <div class="f wide"><label for="job">Job</label><select id="job"></select></div>
+        <div class="f wide"><label for="weapon">Weapon</label><select id="weapon"></select></div>
+        <div class="f wide" id="offBox"><label for="off">Off-hand</label><select id="off"></select></div>
+        <div class="f"><label for="agi">Total AGI</label><input id="agi" type="number" min="1" value="90" inputmode="numeric"></div>
+        <div class="f"><label for="dex">Total DEX</label><input id="dex" type="number" min="1" value="50" inputmode="numeric"></div>
+      </div>
+      <p class="small" style="margin:6px 0 0">Totals as shown in the status window, including AGI from Increase AGI and other buffs.</p>
+
+      <p class="label">Skills</p>
+      <div class="checks" id="skills"></div>
+
+      <p class="label">Potion</p>
+      <div class="checks" id="potions"></div>
+
+      <p class="label">Gear</p>
+      <div class="fields">
+        <div class="f"><label for="flat">+ ASPD</label><input id="flat" type="number" value="0" inputmode="numeric"></div>
+        <div class="f"><label for="pct">+ ASPD %</label><input id="pct" type="number" value="0" inputmode="numeric"></div>
+      </div>
+      <p class="label">Server</p>
+      <div class="fields">
+        <div class="f"><label for="cap">ASPD cap</label><input id="cap" type="number" value="190" min="150" max="199" inputmode="numeric"></div>
+      </div>
+    </form>
+
+    <section class="panel" aria-live="polite">
+      <p class="aspdline">ASPD: <strong id="final">–</strong> <span id="finalTxt"></span></p>
+      <div id="notes"></div>
+
+      <h2 id="nextH">Next ASPD</h2>
+      <div id="next"></div>
+
+      <h2>Flat vs %</h2>
+      <p id="cmp" style="margin:0 0 6px;font-size:1.1rem"></p>
+
+      <h2>Breakdown</h2>
+      <div class="tablewrap"><table class="breakdown"><tbody id="bd"></tbody></table></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var CAP=190;
+// Base ASPD and weapon/shield penalties (Zero), from the RO Calculator's Zero table; Novice from in-game values
+var TAB={"Novice":{"base":156,"shield":-10,"dagger":-15,"sword":-17,"axe":-10,"mace":-10,"rod":-25},
+"Swordman":{"base":156,"shield":-5,"mace":-10,"dagger":-7,"sword":-7,"sword2":-14,"axe":-15,"axe2":-20,"spear":-17,"spear2":-25},
+"Knight":{"base":156,"shield":-5,"mace":-5,"dagger":-9,"sword":-5,"sword2":-3,"axe":-10,"axe2":-15,"spear":-15,"spear2":-20},
+"Crusader":{"base":156,"shield":-5,"mace":-5,"dagger":-8,"sword":-3,"sword2":-15,"axe":-10,"axe2":-15,"spear":-13,"spear2":-10},
+"Mage":{"base":146,"shield":-10,"rod":-5,"staff":-5,"dagger":0},
+"Wizard":{"base":146,"shield":-8,"rod":-3,"staff":-3,"dagger":-4},
+"Sage":{"base":151,"shield":-3,"rod":-10,"staff":-10,"dagger":-8,"book":2},
+"Merchant":{"base":156,"shield":-5,"mace":-10,"dagger":-12,"sword":-12,"axe":-8,"axe2":-15},
+"Blacksmith":{"base":156,"shield":-5,"mace":-8,"dagger":-10,"sword":-10,"axe":-6,"axe2":-10},
+"Alchemist":{"base":156,"shield":-4,"mace":-5,"dagger":-10,"sword":-5,"axe":-5,"axe2":-12},
+"Acolyte":{"base":156,"shield":-7,"mace":-5,"rod":-20,"staff":-20},
+"Priest":{"base":156,"shield":-3,"mace":-3,"rod":-20,"staff":-20,"book":-4,"knuckle":-20},
+"Monk":{"base":156,"shield":-3,"mace":-3,"rod":-20,"staff":-18,"knuckle":0},
+"Thief":{"base":156,"shield":-6,"dagger":-8,"bow":-13,"sword":-10,"axe":-20},
+"Assassin":{"base":156,"dagger":-2,"sword":-10,"axe":-11,"katar":-2},
+"Rogue":{"base":156,"shield":-3,"dagger":-5,"bow":-10,"sword":-10},
+"Archer":{"base":156,"shield":-9,"dagger":-15,"bow":-10},
+"Hunter":{"base":156,"shield":-9,"dagger":-13,"bow":-7},
+"Bard":{"base":156,"shield":-5,"dagger":-13,"bow":-8,"instrument":-5},
+"Dancer":{"base":156,"shield":-5,"dagger":-13,"bow":-8,"whip":-5}};
+var LEFT={"shield":-6,"dagger":-10,"sword":-12,"axe":-12}; // Assassin off-hand
+var WN={unarmed:"Unarmed",dagger:"Dagger",sword:"Sword (one-handed)",sword2:"Sword (two-handed)",axe:"Axe (one-handed)",axe2:"Axe (two-handed)",
+  spear:"Spear (one-handed)",spear2:"Spear (two-handed)",mace:"Mace",rod:"Rod (one-handed)",staff:"Staff (two-handed)",book:"Book",knuckle:"Knuckle",
+  katar:"Katar",bow:"Bow",instrument:"Instrument",whip:"Whip",shield:"Shield"};
+var ORDER=["unarmed","dagger","sword","sword2","axe","axe2","spear","spear2","mace","rod","staff","book","knuckle","katar","bow","instrument","whip"];
+var TWOHAND={sword2:1,axe2:1,spear2:1,staff:1,katar:1,bow:1};
+var DEX7={bow:1,instrument:1,whip:1};
+var JOBS=Object.keys(TAB);
+
+// Skills: k = key, mod = status modifier, pct = % ASPD
+function skillsFor(job,wp){
+  var s=[];
+  var axeMace=(wp==="axe"||wp==="axe2"||wp==="mace");
+  // Everyone
+  s.push({k:"agiBuff",radio:[{v:"none",n:"No AGI buff"},{v:"inc",n:"Increase AGI",d:"+10%"},{v:"canto",n:"Cantocandidus",d:"+10% + caster's job level ÷ 10"}]});
+  s.push({k:"acs",n:"Impressive Riff",d:"+20% at max level",mod:0,pct:20});
+  // Job skills
+  if(job==="Rogue")s.push({k:"plag",n:"Plagiarism",d:"+1% per level",lv:10,pctPer:1});
+  if(job==="Bard")s.push({k:"ml",n:"Musical Lesson",d:"+1% per level",lv:10,pctPer:1});
+  if(job==="Dancer")s.push({k:"dl",n:"Dance Lesson",d:"+1% per level",lv:10,pctPer:1});
+  if(job==="Knight"||job==="Crusader")s.push({k:"cav",n:"Cavalry Mastery",d:"0 = not riding a Peco Peco",lv:5,peco:1});
+  // Skills that need a particular weapon (always listed, greyed out with the wrong weapon)
+  var t=TAB[job],sp=(wp==="spear"||wp==="spear2");
+  if(job!=="Blacksmith"&&(t.axe!==undefined||t.axe2!==undefined||t.mace!==undefined))s.push({k:"arp",n:"Adrenaline Rush (party)",d:"+10%, modifier +6",mod:6,pct:10,off:!axeMace,need:"Needs an axe or mace"});
+  if(job==="Knight")s.push({k:"thq",n:"Two-Hand Quicken",d:"+10%, modifier +7",mod:7,pct:10,off:wp!=="sword2",need:"Needs a two-handed sword"});
+  if(job==="Crusader")s.push({k:"sq",n:"Spear Quicken",d:"+10%, modifier +7",mod:7,pct:10,off:!sp,need:"Needs a spear"});
+  if(job==="Blacksmith")s.push({k:"ar",n:"Adrenaline Rush",d:"+10%, modifier +7",mod:7,pct:10,off:!axeMace,need:"Needs an axe or mace"});
+  if(job==="Sage")s.push({k:"ab",n:"Advanced Book",d:"modifier +4",mod:4,pct:0,off:wp!=="book",need:"Needs a book"});
+  return s;
+}
+// Potions: modifier, jobs that can use them (rAthena's job lists)
+var POT=[{k:"none",n:"None",mod:0},
+  {k:"conc",n:"Concentration Potion",d:"modifier +4",mod:4},
+  {k:"awake",n:"Awakening Potion",d:"modifier +6",mod:6,no:["Acolyte","Priest","Bard","Dancer","Wizard"]},
+  {k:"bers",n:"Berserk Potion",d:"modifier +9",mod:9,only:["Swordman","Knight","Crusader","Merchant","Blacksmith","Alchemist","Rogue","Mage","Wizard"]}];
+
+var $=function(id){return document.getElementById(id);};
+var st={};
+function load(){try{st=JSON.parse(localStorage.getItem("zeroAspd")||"{}")||{};}catch(e){st={};}}
+function save(){try{localStorage.setItem("zeroAspd",JSON.stringify(st));}catch(e){}}
+
+function fillJobs(){$("job").innerHTML=JOBS.map(function(j){return '<option>'+j+'</option>';}).join("");}
+function fillWeapons(){var t=TAB[$("job").value];var opts=ORDER.filter(function(w){return w==="unarmed"||t[w]!==undefined;});
+  var cur=$("weapon").value;$("weapon").innerHTML=opts.map(function(w){var v=w==="unarmed"?0:t[w];return '<option value="'+w+'">'+WN[w]+(w==="unarmed"?"":' ('+(v>0?"+":"")+v+')')+'</option>';}).join("");
+  if(opts.indexOf(cur)>=0)$("weapon").value=cur;else if(st.weapon&&opts.indexOf(st.weapon)>=0)$("weapon").value=st.weapon;}
+function fillOff(){var job=$("job").value,w=$("weapon").value,t=TAB[job];var opts=["none"];
+  if(!TWOHAND[w]){
+    if(job==="Assassin"){if(w!=="unarmed")opts=opts.concat(["shield","dagger","sword","axe"]);}
+    else if(t.shield!==undefined)opts.push("shield");}
+  var cur=$("off").value;$("off").innerHTML=opts.map(function(o){var v=o==="none"?0:(job==="Assassin"?LEFT[o]:t.shield);return '<option value="'+o+'">'+(o==="none"?"Nothing":WN[o]+' ('+(v>0?"+":"")+v+')')+'</option>';}).join("");
+  if(opts.indexOf(cur)>=0)$("off").value=cur;else if(st.off&&opts.indexOf(st.off)>=0)$("off").value=st.off;
+  $("offBox").hidden=opts.length<2;}
+function fillSkills(){var job=$("job").value,w=$("weapon").value,list=skillsFor(job,w),sk=st.sk||{};
+  $("skills").innerHTML=list.map(function(s){
+    if(s.radio)return s.radio.map(function(r){var on=(sk.agiBuff||"none")===r.v;
+      return '<div class="chk"><input type="radio" name="agiBuff" id="ab_'+r.v+'" value="'+r.v+'"'+(on?' checked':'')+'><label for="ab_'+r.v+'">'+r.n+'</label>'+
+        (r.v==="canto"?'<div class="chk" style="flex-basis:100%;padding-left:26px"><input type="number" id="cantoJob" min="1" max="70" value="'+(sk.cantoJob||50)+'" aria-label="Caster job level"><span class="desc">caster\'s job level</span></div>':'')+'</div>';}).join("");
+    if(s.lv)return '<div class="chk"><input type="number" id="sk_'+s.k+'" min="0" max="'+s.lv+'" value="'+(sk[s.k]||0)+'" aria-label="'+s.n+' level"><label for="sk_'+s.k+'">'+s.n+'</label>'+(s.peco?'<span class="desc">'+s.d+'</span>':'')+'</div>';
+    if(s.off)return '<div class="chk off"><input type="checkbox" id="sk_'+s.k+'" disabled><label for="sk_'+s.k+'">'+s.n+'</label><span class="desc">'+s.need+'</span></div>';
+    return '<div class="chk"><input type="checkbox" id="sk_'+s.k+'"'+(sk[s.k]?' checked':'')+'><label for="sk_'+s.k+'">'+s.n+'</label></div>';
+  }).join("");}
+function fillPots(){var job=$("job").value,cur=st.pot||"none";
+  var list=POT.filter(function(p){return !(p.no&&p.no.indexOf(job)>=0)&&!(p.only&&p.only.indexOf(job)<0);});
+  if(!list.some(function(p){return p.k===cur;}))cur="none";
+  $("potions").innerHTML=list.map(function(p){return '<div class="chk"><input type="radio" name="pot" id="pot_'+p.k+'" value="'+p.k+'"'+(p.k===cur?' checked':'')+'><label for="pot_'+p.k+'">'+p.n+'</label></div>';}).join("");}
+
+function n(id,d){var el=$(id);if(!el)return d;var v=Number(el.value);return isFinite(v)?v:d;}
+function readCfg(){
+  var job=$("job").value,w=$("weapon").value,off=$("off").value,t=TAB[job];
+  var cfg={job:job,w:w,off:off,base:t.base,main:w==="unarmed"?0:(t[w]||0),offPen:0,mod:0,pct:0,lines:[]};
+  if(off!=="none")cfg.offPen=job==="Assassin"?(LEFT[off]||0):(t.shield||0);
+  var sk={};skillsFor(job,w).forEach(function(s){
+    if(s.radio){var r=document.querySelector('input[name=agiBuff]:checked');var v=r?r.value:"none";sk.agiBuff=v;
+      if(v==="inc"){cfg.pct+=10;cfg.lines.push(["Increase AGI","+10%"]);}
+      if(v==="canto"){var jl=Math.max(1,Math.floor(n("cantoJob",50)));sk.cantoJob=jl;var p=10+Math.floor(jl/10);cfg.pct+=p;cfg.lines.push(["Cantocandidus","+"+p+"%"]);}
+      return;}
+    if(s.lv){var l=Math.max(0,Math.min(s.lv,Math.floor(n("sk_"+s.k,0))));sk[s.k]=l;
+      if(s.peco){if(l>0){var m=-(50-10*l);cfg.mod+=m;cfg.lines.push(["Riding a Peco Peco (Cavalry Mastery "+l+")","modifier "+(m<0?m:"+0")]);}}
+      else if(l>0){cfg.pct+=l*s.pctPer;cfg.lines.push([s.n+" "+l,"+"+(l*s.pctPer)+"%"]);}
+      return;}
+    if(s.off){sk[s.k]=(st.sk||{})[s.k];return;}
+    var on=$("sk_"+s.k)&&$("sk_"+s.k).checked;sk[s.k]=on;
+    if(on){cfg.mod+=s.mod;cfg.pct+=s.pct;cfg.lines.push([s.n,(s.pct?"+"+s.pct+"%":"")+(s.pct&&s.mod?", ":"")+(s.mod?"modifier +"+s.mod:"")]);}
+  });
+  var pr=document.querySelector('input[name=pot]:checked'),pk=pr?pr.value:"none",pot=POT.filter(function(p){return p.k===pk;})[0];
+  if(pot&&pot.mod){cfg.mod+=pot.mod;cfg.lines.push([pot.n,"modifier +"+pot.mod]);}
+  CAP=Math.max(1,Math.floor(n("cap",190)));st.cap=CAP;cfg.flat=Math.floor(n("flat",0));cfg.gpct=n("pct",0);
+  st.job=job;st.weapon=w;st.off=off;st.sk=sk;st.pot=pk;st.flat=cfg.flat;st.pct=cfg.gpct;st.agi=n("agi",1);st.dex=n("dex",1);
+  return cfg;}
+
+// The Zero ASPD formula
+function calc(cfg,agi,dex,extraFlat,extraPct){
+  var stat=Math.sqrt(dex*dex/(DEX7[cfg.w]?7:5)+agi*agi/2)/4;
+  var status=cfg.mod*agi/200;
+  var a1=Math.floor(cfg.base+cfg.main+cfg.offPen+stat+status);
+  var p=cfg.pct+cfg.gpct+(extraPct||0);
+  var a2=Math.floor(a1+(195-a1)*p/100+1e-9);
+  var raw=a2+cfg.flat+(extraFlat||0);
+  return {stat:stat,status:status,a1:a1,a2:a2,raw:raw,fin:Math.min(CAP,raw),p:p};}
+
+function render(){
+  var cfg=readCfg(),agi=Math.max(1,Math.floor(st.agi)),dex=Math.max(1,Math.floor(st.dex));save();
+  var r=calc(cfg,agi,dex);
+  $("final").textContent=r.fin;
+  $("finalTxt").textContent="("+(50/(200-r.fin)).toFixed(2)+" hits/s"+(r.raw>=CAP?", at the cap":"")+")";
+  var notes=[];
+  if(r.raw>CAP)notes.push(["ok","This setup would reach "+r.raw+" without the cap, so "+(r.raw-CAP)+" ASPD is going to waste."]);
+  $("notes").innerHTML=notes.map(function(x){return '<div class="note '+x[0]+'">'+x[1]+'</div>';}).join("");
+
+  // Next ASPD
+  var nx="";
+  if(r.fin>=CAP){nx='<p class="none">Already at the cap.</p>';$("nextH").textContent="Next ASPD";}
+  else{
+    var target=r.fin+1,LIM=400;$("nextH").textContent="To reach "+target;
+    function needAgi(dx){for(var a=1;a<=LIM;a++){if(calc(cfg,agi+a,dx).fin>=target)return a;}return null;}
+    function needDex(ag){for(var d=1;d<=LIM;d++){if(calc(cfg,ag,dex+d).fin>=target)return d;}return null;}
+    var na=needAgi(dex),nd=needDex(agi),rows="";
+    if(na){rows+='<tr><td class="num">+'+na+'</td><td class="num">+0</td></tr>';
+      for(var k=na-1;k>=1;k--){var d=needDex(agi+k);if(d)rows+='<tr><td class="num">+'+k+'</td><td class="num">+'+d+'</td></tr>';}}
+    if(nd)rows+='<tr><td class="num">+0</td><td class="num">+'+nd+'</td></tr>';
+    nx=rows?'<div class="tablewrap"><table><thead><tr><th>AGI</th><th>DEX</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<p class="none">Not reachable with AGI or DEX alone.</p>';
+  }
+  $("next").innerHTML=nx;
+
+  // Flat vs %
+  var gap=195-r.a1;
+  $("cmp").innerHTML=gap>0?'<strong>+1 ASPD</strong> ≈ <strong>+'+(100/gap).toFixed(2)+'%</strong>':'% ASPD has no effect at this speed.';
+
+  // Breakdown
+  var bd=[["Base ASPD ("+cfg.job+")",cfg.base],["Weapon ("+WN[cfg.w]+")",fmt(cfg.main)]];
+  if(cfg.off!=="none")bd.push(["Off-hand ("+WN[cfg.off]+")",fmt(cfg.offPen)]);
+  bd.push(["AGI/DEX bonus",fmt2(r.stat)]);
+  if(cfg.mod)bd.push(["Modifier bonus",fmt2(r.status)]);
+  bd.push(["Subtotal",r.a1]);
+  bd.push(["% bonus (+"+r.p+"%)",fmt(r.a2-r.a1)]);
+  if(cfg.flat)bd.push(["Flat ASPD from gear",fmt(cfg.flat)]);
+  var html=bd.map(function(x){return '<tr><td>'+x[0]+'</td><td class="num">'+x[1]+'</td></tr>';}).join("");
+  if(cfg.lines.length)html+='<tr><td colspan="2" class="small">Active: '+cfg.lines.map(function(l){return l[0]+" ("+l[1]+")";}).join(", ")+(cfg.gpct?", gear +"+cfg.gpct+"%":"")+'</td></tr>';
+  $("bd").innerHTML=html;
+}
+function fmt(v){return (v>0?"+":"")+v;}
+function fmt2(v){return (v>=0?"+":"")+v.toFixed(2);}
+
+function rebuild(){fillWeapons();fillOff();fillSkills();fillPots();render();}
+load();fillJobs();
+if(st.job&&TAB[st.job])$("job").value=st.job;
+["agi","dex","flat","pct","cap"].forEach(function(k){if(st[k]!==undefined)$(k).value=st[k];});
+$("job").addEventListener("change",function(){st.weapon=null;st.off=null;rebuild();});
+$("weapon").addEventListener("change",function(){fillOff();fillSkills();render();});
+$("off").addEventListener("change",render);
+["agi","dex","flat","pct","cap"].forEach(function(k){$(k).addEventListener("input",render);});
+$("skills").addEventListener("input",render);$("skills").addEventListener("change",render);
+$("potions").addEventListener("change",render);
+rebuild();
+})();
+</script>
+
+</body></html>
