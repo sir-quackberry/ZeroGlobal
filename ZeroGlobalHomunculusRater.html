@@ -54,6 +54,14 @@ h1{font-family:var(--display);font-weight:800;font-size:2rem;margin:0;line-heigh
 .divider{height:1px;background:var(--line);margin:16px 0}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .btn{font:inherit;font-size:.9rem;padding:7px 12px;border-radius:0;border:1px solid var(--line);background:var(--field);color:var(--ink);cursor:pointer}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0 0 0 0)}
+label.btn{display:inline-block}
+#rrf:focus-visible+label,label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.replay.drag{outline:2px dashed var(--accent);outline-offset:6px}
+.rinfo{margin-top:10px;font-size:.9rem;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;font-variant-numeric:tabular-nums}
+.rinfo b{font-family:var(--display)}
+.rinfo .err{grid-column:1/-1;background:var(--bad-bg);color:var(--bad-ink);padding:7px 10px}
+.rinfo .msg{grid-column:1/-1;color:var(--muted)}
 .summary{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;margin-bottom:6px}
 .big{display:flex;align-items:center;gap:14px}
 .gradebig{font-family:var(--display);font-weight:700;font-size:2.6rem;line-height:1;min-width:2.2ch;text-align:center}
@@ -79,6 +87,12 @@ tr.prov td{opacity:.62}
 .bar .mk{position:absolute;top:-4px;bottom:-4px;width:6px;margin-left:-3px;border-radius:0;background:var(--ink)}
 .bar .rng{position:absolute;top:2px;bottom:2px;border-radius:0;background:var(--ink);opacity:.85}
 .small{font-size:.82rem;color:var(--muted)}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.ph{font-family:var(--display);font-weight:700;font-size:1.05rem;margin:0 0 4px}
+table.hid{min-width:0}
+table.hid td{padding:8px}
+table.hid td:first-child{font-weight:700;white-space:nowrap}
+table.hid td.num{white-space:nowrap}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:.85rem;color:var(--muted)}
 .legend span b{font-family:var(--display)}
 details{margin-top:20px}
@@ -101,7 +115,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:700}
   </header>
 
   <div class="grid">
-    <form class="panel" id="form" autocomplete="off">
+    <form class="panel" id="form" autocomplete="off" novalidate>
       <p class="label">Homunculus</p>
       <div class="types" role="group" aria-label="Homunculus type">
         <button type="button" data-type="lif" aria-pressed="false">Lif</button>
@@ -125,11 +139,21 @@ summary{cursor:pointer;font-family:var(--display);font-weight:700}
           <select id="passive"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
       </div>
       <div class="actions">
-        <button type="submit" class="btn primary" id="submit">Submit</button>
+        <button type="button" class="btn primary" id="submit">Submit</button>
         <button type="button" class="btn" id="reset">Reset</button>
+      </div>
+      <div class="divider"></div>
+      <div class="replay" id="replayDrop">
+        <p class="label">Or load a replay</p>
+        <div class="actions" style="margin-top:0">
+          <label class="btn">Choose .rrf file<input id="rrf" type="file" accept=".rrf" class="vh"></label>
+        </div>
+        <p class="hint">Start recording, then change map or use Call Homunculus so the replay catches its status. You can also drop the file here.</p>
+        <div id="replayInfo" class="rinfo" hidden></div>
       </div>
     </form>
 
+    <div class="col">
     <section class="panel" id="results" aria-live="polite">
       <div class="summary">
         <div class="big"><div class="gradebig" id="ovGrade">–</div>
@@ -161,6 +185,11 @@ summary{cursor:pointer;font-family:var(--display);font-weight:700}
         <p class="small" style="margin-top:10px">The shaded band is the middle 90% of homunculi of this type, level and passive skill level; the thin line is the average. Your passive skill is counted the same way for everyone, so the comparison is like for like.</p>
       </div>
     </section>
+    <section class="panel" id="hiddenPanel" hidden>
+      <h2 class="ph">Not shown in the status window</h2>
+      <div class="tablewrap"><table class="hid"><tbody id="hiddenRows"></tbody></table></div>
+    </section>
+    </div>
   </div>
 
 </div>
@@ -168,7 +197,7 @@ summary{cursor:pointer;font-family:var(--display);font-weight:700}
 <script>
 (function(){
 "use strict";
-// Per-level gain odds for one roll of a..b tenths with the decimal dropped (the rAthena method)
+// Per-level gain odds for one roll of a..b tenths with the decimal dropped
 function R(a,b){var n=b-a+1,p=[];for(var v=a;v<=b;v++){var k=Math.floor(v/10);p[k]=(p[k]||0)+1/n;}for(var i=0;i<p.length;i++)p[i]=p[i]||0;return p;}
 var NOP={name:"",STR:[0,0,0,0,0,0],INT:[0,0,0,0,0,0],DEF:[0,0,0,0,0,0],HP:0,SP:0};
 var T={
@@ -176,7 +205,7 @@ var T={
     l1:{atk:16,matk:52,hit:162,crit:4,def:27,mdef:19,flee:112,aspd:133,hp:80,sp:11},
     passive:{name:"Instruction Change",hint:"Instruction Change adds STR and INT, which raises ATK, MATK and MDEF.",
       STR:[0,1,1,3,4,4],INT:[0,1,2,2,4,5],DEF:[0,0,0,0,0,0],HP:0,SP:0},
-    g:{STR:R(6,50),AGI:R(1,50),VIT:R(1,50),INT:R(1,50),DEX:R(1,50),LUK:R(1,50)},
+    g:{STR:R(1,50),AGI:R(1,50),VIT:R(1,50),INT:R(1,50),DEX:R(1,50),LUK:R(1,50)},
     hp:[30,300],sp:[0,12]},
   amistr:{name:"Amistr",base:{STR:20,AGI:17,VIT:35,INT:11,DEX:24,LUK:13},
     l1:{atk:28,matk:60,hit:175,crit:5,def:78,mdef:37,flee:118,aspd:136,hp:320,sp:10},
@@ -276,7 +305,7 @@ function row(label,src,shown,S,lo,hi,extraCol){
 }
 function blankRow(label,msg,cols){return '<tr><td class="stat">'+label+'</td><td colspan="'+cols+'" class="small">'+msg+'</td></tr>';}
 function setNotes(notes){$("notes").innerHTML=notes.map(function(x){return '<div class="note '+x[0]+'">'+x[1]+'</div>';}).join("");}
-function prompt(title,text){$("ovGrade").textContent="–";$("ovGrade").style.color="";$("ovTitle").textContent=title;$("ovText").textContent=text;$("out").hidden=true;$("results").classList.remove("stale");}
+function prompt(title,text){var hp_=document.getElementById("hiddenPanel");if(hp_)hp_.hidden=true;$("ovGrade").textContent="–";$("ovGrade").style.color="";$("ovTitle").textContent=title;$("ovText").textContent=text;$("out").hidden=true;$("results").classList.remove("stale");}
 
 function rate(){
   var t=T[state.type],L=num("lvl"),atk=num("atk"),matk=num("matk"),mdefv=num("mdef"),hit=num("hit"),crit=num("crit"),def=num("def"),flee=num("flee"),aspd=num("aspd"),hp=num("hp"),sp=num("sp");
@@ -306,7 +335,7 @@ function rate(){
     if(aspd!==null&&aspdFor(hA,h.fl)!==aspd)return false;
     if(state.type==="lif"&&!possible("VIT",hV-b-h.V))return false;
     return true;}
-  var NONE={D:0,F:0,V:0,I:0,fl:0},buff=NONE,hyps=[];
+  var NONE={D:0,F:0,V:0,I:0,fl:0},buff=NONE,hyps=[],fls=[];
   if(state.type==="amistr")for(var l=1;l<=5;l++)hyps.push({D:5+5*l,F:0,V:0,I:0,fl:0,bw:l});
   if(state.type==="filir")for(var f=0;f<=5;f++)for(var g=0;g<=5;g++)if(f||g)hyps.push({D:0,F:f?10+10*f:0,V:0,I:0,fl:g,af:f});
   // Does a full set of numbers fit together (allowing for active skills)? Used to find a single typo.
@@ -323,19 +352,23 @@ function rate(){
         for(var K=L0;K<=L0+2;K++)if(3*L+3*I+Math.floor((I+DX+K+2*b)/2)===v.matk&&possible("INT",I-b-icI-h.I))return true;}
       return false;}}
   if(hyps.length&&!fits(NONE)){var hit_=hyps.filter(fits);
-    if(hit_.length){buff=hit_.slice().sort(function(p,q){return (p.fl+(p.af||0)+(p.bw||0)+(p.mc||0))-(q.fl+(q.af||0)+(q.bw||0)+(q.mc||0));})[0];
+    if(hit_.length){hit_.forEach(function(h){if(h.fl&&fls.indexOf(h.fl)<0)fls.push(h.fl);});buff=hit_.slice().sort(function(p,q){return (p.fl+(p.af||0)+(p.bw||0)+(p.mc||0))-(q.fl+(q.af||0)+(q.bw||0)+(q.mc||0));})[0];
       var lv=function(k){var v=hit_.map(function(h){return h[k]||0;});if(v.indexOf(0)>=0)return null;var a=Math.min.apply(null,v),z=Math.max.apply(null,v);return a===z?"level "+a:"level "+a+"–"+z;};
       var names=[];
       if(state.type==="amistr")names.push("Amistr Bulwark "+lv("bw")+" (DEF +"+buff.D+")");
-      if(state.type==="filir"){if(lv("af"))names.push("Accelerated Flight "+lv("af")+" (FLEE +"+buff.F+")");if(lv("fl"))names.push("Flitting "+lv("fl")+" (higher ASPD)");}
-      if(state.type==="lif")names.push("Mental Charge "+lv("mc")+" (VIT +"+buff.V+", INT +"+buff.I+", based on rAthena's values)");
+      if(state.type==="filir"){if(lv("af"))names.push("Accelerated Flight "+lv("af")+" (FLEE +"+buff.F+")");if(lv("fl"))names.push("Flitting "+lv("fl")+" (higher ASPD and ATK)");}
+      if(state.type==="lif")names.push("Mental Charge "+lv("mc")+" (VIT +"+buff.V+", INT +"+buff.I+")");
       notes.push(["bad","These numbers only fit together with "+names.join(" and ")+" active. The rating below takes "+(names.length>1?"them":"it")+" off, but for the most accurate result enter the stats while no active skills are running."]);}}
   def-=buff.D;flee-=buff.F;
   var hAGI=flee-L-100,AGI=hAGI-b;
   var x=def-skinD-Math.floor(hAGI/2)-Math.floor(L/2),hVIT=Math.floor(x/2),VIT=hVIT-b-buff.V;
   if(x%2!==0)fail("DEF and FLEE don't fit together.",["DEF","FLEE","the level",state.type==="amistr"?PN:null]);
   var LUKlo=3*(crit-1),LUKhi=LUKlo+2;
-  var SL=2*atk-DEX-3*b,SLlo=SL-icS,SLhi=SL+1-icS;
+  // Flitting raises ATK by 5% + 5% per level, so work back to the ATK without it
+  var atkLo=atk,atkHi=atk;
+  if(fls.length){var bases=[];fls.forEach(function(f){for(var a0=Math.floor(atk*100/(105+5*f))-2;a0<=atk;a0++)if(Math.floor(a0*(105+5*f)/100)===atk)bases.push(a0);});
+    if(bases.length){atkLo=Math.min.apply(null,bases);atkHi=Math.max.apply(null,bases);}}
+  var SLlo=2*atkLo-DEX-3*b-icS,SLhi=2*atkHi+1-DEX-3*b-icS;
   var hIs=[];for(var I=0;I<1500;I++){if(Math.floor((hVIT+L)/4+I/2)+Math.floor((hVIT+I)/2)===mdefv)hIs.push(I);}
   // MATK on its own (with LUK from Critical) also pins INT
   var mPairs=[];for(var J=0;J<1500;J++){for(var K=LUKlo;K<=LUKhi;K++){if(3*L+3*J+Math.floor((J+DEX+K+2*b)/2)===matk)mPairs.push([J,K]);}}
@@ -391,6 +424,7 @@ function rate(){
   var html="";
   ["ATK","MATK","HIT","Critical","DEF","MDEF","FLEE","ASPD"].forEach(function(k){
     if(vals[k]===null){html+=blankRow(k,"Not entered.",5);return;}
+    if(k==="ATK"&&atkHi!==atk){html+=row(k,"without Flitting",fmtR(atkLo,atkHi),sumArr(SD[k]),atkLo,atkHi);return;}
     html+=row(k,"",String(vals[k]),sumArr(SD[k]),vals[k],vals[k]);});
   var hpM=1+P.HP*pl,spM=1+P.SP*pl;
   var HS=poolSummary(t.l1.hp,t.hp[0],t.hp[1],n,hpM),SS=poolSummary(t.l1.sp,t.sp[0],t.sp[1],n,spM);
@@ -408,6 +442,40 @@ function rate(){
   data.forEach(function(r){var S=sumArr(D[r.s]),bs=B[r.s];
     ah+=row(r.s,"",fmtR(r.lo,r.hi),S,r.lo,r.hi,(r.lo===r.hi?"+"+(r.lo-bs):"+"+(r.lo-bs)+"–"+(r.hi-bs)));});
   $("attrRows").innerHTML=ah;
+
+  // ---- things the status window doesn't show ----
+  (function(){
+    var hI0=INTlo+b+icI,hI1=INThi+b+icI,rows=[];
+    function rg(f){var a=f(hI0),z=f(hI1);return a===z?String(a):Math.min(a,z)+"–"+Math.max(a,z);}
+    var hardD=hVIT+Math.floor(L/2)+skinD,softD=hVIT+Math.floor(hAGI/2);
+    var red=function(h){return Math.round(100-100*(4000+h)/(4000+10*h));},mred=function(h){return Math.round(100-100*(1000+h)/(1000+10*h));};
+    var fmt=function(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",");};
+    var dmg=function(base,tlo,thi){return fmt(base[0]+Math.floor(tlo/5))+"–"+fmt(base[1]+Math.floor(thi/2));};
+    var hS0=STRlo+b+icS,hS1=STRhi+b+icS,hD=DEX+b,hK0=LUKlo+b,hK1=LUKhi+b;
+    rows.push(["Physical damage",dmg([3*L+3*hS0,3*L+3*hS1],hS0+hD+hK0,hS1+hD+hK1),"Each normal attack rolls in this range, before the target's DEF"+(state.type==="filir"?" (without Flitting)":"")]);
+    rows.push(["Magic damage",dmg([3*L+3*hI0,3*L+3*hI1],hI0+hD+hK0,hI1+hD+hK1),"Each spell rolls in this range, before the target's MDEF"]);
+    rows.push(["Hard DEF",String(hardD),"Cuts physical damage by about "+red(hardD)+"%"]);
+    rows.push(["Soft DEF",String(softD),"Then taken off each physical hit"]);
+    var hM=function(i){return Math.floor((hVIT+L)/4+i/2);},sM=function(i){return Math.floor((hVIT+i)/2);};
+    rows.push(["Hard MDEF",rg(hM),"Cuts magic damage by about "+(mred(hM(hI0))===mred(hM(hI1))?mred(hM(hI0)):Math.min(mred(hM(hI0)),mred(hM(hI1)))+"–"+Math.max(mred(hM(hI0)),mred(hM(hI1))))+"%"]);
+    rows.push(["Soft MDEF",rg(sM),"Then taken off each magic hit"]);
+    var tick=function(base,fast,lv){return lv>=5?fast:base-(base-fast)*lv/5;},
+        ps=function(a,z,t){var x=(a/t).toFixed(1),y=(z/t).toFixed(1);return x===y?x:x+"–"+y;};
+    if(hp!==null){var hr=Math.floor(hVIT/5)+Math.floor(hp/200),sk=state.type==="amistr"?pl:0,ht=tick(2.15,1.79,sk);
+      rows.push(["HP regen",hr+" per tick","Ticks every "+ht.toFixed(2)+" s"+(sk&&sk<5?" (estimated)":"")+", about "+ps(hr,hr,ht)+" HP a second"+(state.type==="amistr"&&!sk?". Adamantium Skin 5 makes it tick every 1.79 s":"")]);}
+    if(sp!==null){var spr=function(i){return Math.floor(i/6)+Math.floor(sp/100);},bsl=state.type==="lif"?pl:0,st=tick(4.30,3.57,bsl);
+      rows.push(["SP regen",rg(spr)+" per tick","Ticks every "+st.toFixed(2)+" s"+(bsl&&bsl<5?" (estimated)":"")+", about "+ps(spr(hI0),spr(hI1),st)+" SP a second"+(state.type==="lif"&&!bsl?". Brain Surgery 5 makes it tick every 3.57 s":"")]);}
+    if(state.type==="lif"){var hh=Math.floor(20*(L+10)*(100+2*pl)/100);
+      rows.push(["Healing Hands 5",hh+" HP",pl===5?"Heals the same whatever the target's stats or gear":"Estimated: only checked in game with Brain Surgery 5"]);}
+    if(state.type==="filir"){
+      var am0=700-(Math.floor(28*hAGI/10)+Math.floor(7*(DEX+b)/10));
+      var asp=function(f){var am=f?Math.floor(am0*(1000-30*f)/1000):am0,v=Math.floor((2000-am)/10);return String(Math.min(ASPD_CAP,v));};
+      var fat=function(f){var a=Math.floor(atkLo*(105+5*f)/100),z=Math.floor(atkHi*(105+5*f)/100);return a===z?String(a):a+"–"+z;};
+      rows.push(["No Flitting","ASPD "+asp(0),"ATK "+fat(-1)]);
+      for(var f=1;f<=5;f++)rows.push(["Flitting "+f,"ASPD "+asp(f),"ATK "+fat(f)+" (+"+(5+5*f)+"%)"]);}
+    $("hiddenRows").innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="num">'+r[1]+'</td><td class="small">'+r[2]+'</td></tr>';}).join("");
+    $("hiddenPanel").hidden=false;
+  })();
 
   // ---- overall: all six attributes ----
   var dT=sumD(sumD(sumD(D.AGI,D.VIT),sumD(D.DEX,D.INT)),sumD(D.STR,D.LUK)),ST=sumArr(dT);
@@ -446,12 +514,99 @@ function markStale(){if(rated&&!$("out").hidden){$("results").classList.add("sta
 
 document.querySelectorAll(".types button").forEach(function(btn){btn.addEventListener("click",function(){if(btn.dataset.type===state.type)return;save();setType(btn.dataset.type);showType(btn.dataset.type);save();});});
 ids.forEach(function(i){$(i).addEventListener("input",function(){markStale();save();});$(i).addEventListener("change",markStale);});
-$("form").addEventListener("submit",function(e){e.preventDefault();rate();});
+function safeRate(){try{rate();}catch(err){$("out").hidden=true;$("ovGrade").textContent="!";$("ovTitle").textContent="Something went wrong";$("ovText").textContent="The rater hit an error with these numbers: "+(err&&err.message?err.message:err)+". Please send these numbers so it can be fixed.";}}
+$("form").addEventListener("submit",function(e){e.preventDefault();safeRate();});
+$("submit").addEventListener("click",function(e){e.preventDefault();safeRate();});
+$("form").addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.tagName==="INPUT"&&e.target.type!=="file"){e.preventDefault();safeRate();}});
 $("reset").addEventListener("click",function(){fillL1(state.type);rated=false;prompt("Enter a status window","Level 1 "+T[state.type].name+" values are filled in. Enter yours and press Submit.");setNotes([]);save();});
 function setView(a){$("vStats").setAttribute("aria-pressed",String(!a));$("vAttr").setAttribute("aria-pressed",String(a));$("statBox").hidden=a;$("attrBox").hidden=!a;try{localStorage.setItem("homrater2attr",a?"1":"0");}catch(e){}}
 $("vStats").addEventListener("click",function(){setView(false);});
 $("vAttr").addEventListener("click",function(){setView(true);});
 try{if(localStorage.getItem("homrater2attr")==="1")setView(true);}catch(e){}
+
+// ---- replay (.rrf) reader ----
+// Header: 100-byte banner, version, "GAR", date/time (used as the key), 24 container entries.
+// Container 1 is the packet stream; each packet is XORed per 4-byte word with (key1+c+1)*key2.
+function readReplay(buf){
+  var u=new Uint8Array(buf),dv=new DataView(buf);
+  var banner=String.fromCharCode.apply(null,u.subarray(0,23));
+  if(banner!=="<< Ragnarok Replay File")throw new Error("That isn't a Ragnarok replay (.rrf) file.");
+  var k1=dv.getInt32(104,true)>>5,k2=((u[109]<<8)|(u[110]<<16)|(u[111]<<24))>>3;
+  var off=-1,len=0,pos=112;
+  for(var i=0;i<24;i++,pos+=10){if(dv.getUint16(pos,true)===1){len=dv.getInt32(pos+2,true);off=dv.getInt32(pos+6,true);break;}}
+  if(off<=0)throw new Error("This replay has no packet data.");
+  var end=len?Math.min(u.length,off+len):u.length,p=off,out=[];
+  function word(base,c){return dv.getInt32(base+c*4,true)^Math.imul((k1+c+1)|0,k2);}
+  while(p+10<=end){
+    var plen=dv.getUint16(p+8,true),d=p+10;if(d+plen>end)break;
+    if(plen>=4){var w0=word(d,0),h=w0&0xffff;
+      if(h===0x0ba4||h===0x0235){var b=new ArrayBuffer(plen),bv=new DataView(b),n=plen>>2;
+        for(var c=0;c<n;c++)bv.setInt32(c*4,word(d,c),true);
+        new Uint8Array(b).set(u.subarray(d+n*4,d+plen),n*4);
+        out.push({h:h,v:bv,n:plen});}}
+    p=d+plen;}
+  return out;
+}
+var SKILLTYPE=[[8001,8004,"lif"],[8005,8008,"amistr"],[8009,8012,"filir"],[8013,8016,"vanil"]];
+var PASSIVE_ID={lif:8003,amistr:8007,vanil:8015};
+function homunFromReplay(pk){
+  var list=[],skills=null;
+  pk.forEach(function(x){var v=x.v;
+    if(x.h===0x0235){var s={};for(var q=4;q+37<=x.n;q+=37)s[v.getUint16(q,true)]=v.getUint16(q+6,true);skills=s;}
+    else if(x.n>=85){var nm="";for(var q=2;q<26;q++){var ch=v.getUint8(q);if(!ch)break;nm+=String.fromCharCode(ch);}
+      list.push({name:nm,level:v.getUint16(27,true),hunger:v.getUint16(29,true),intimacy:v.getUint16(31,true),
+        atk:v.getUint16(33,true),matk:v.getUint16(35,true),hit:v.getUint16(37,true),crit:v.getUint16(39,true),
+        def:v.getUint16(41,true),mdef:v.getUint16(43,true),flee:v.getUint16(45,true),amotion:v.getUint16(47,true),
+        maxhp:v.getUint32(53,true),maxsp:v.getUint32(61,true),
+        exp:Number(v.getBigInt64?v.getBigInt64(65,true):v.getUint32(65,true)),expnext:Number(v.getBigInt64?v.getBigInt64(73,true):v.getUint32(73,true)),
+        skills:skills});}});
+  if(!list.length)return null;
+  var last=list[list.length-1],names=[];
+  list.forEach(function(r){if(names.indexOf(r.name)<0)names.push(r.name);});
+  // the server sends each status twice; the first copy has no ASPD and no passive bonuses
+  var pick=null;for(var i=list.length-1;i>=0;i--){if(list[i].name===last.name&&list[i].amotion>0){pick=list[i];break;}}
+  pick=pick||last;var type=null,pl=0;
+  if(pick.skills)Object.keys(pick.skills).forEach(function(id){id=+id;SKILLTYPE.forEach(function(r){if(id>=r[0]&&id<=r[1])type=r[2];});});
+  if(type&&PASSIVE_ID[type]&&pick.skills[PASSIVE_ID[type]])pl=pick.skills[PASSIVE_ID[type]];
+  pick.type=type;pick.pl=pl;pick.others=names.filter(function(n){return n!==pick.name;});
+  return pick;
+}
+function intimacyName(i){return i<=3?"Hate with Passion":i<=10?"Hate":i<=100?"Awkward":i<=250?"Shy":i<=750?"Neutral":i<=910?"Cordial":"Loyal";}
+function hungerName(h){return h<=10?"Very Hungry":h<=25?"Hungry":h<=75?"Neutral":h<=90?"Satisfied":"Stuffed";}
+var fmtN=function(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",");};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function replayMsg(html){var el=$("replayInfo");el.innerHTML=html;el.hidden=!html;}
+function useReplay(file){
+  if(!file)return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    var h;try{h=homunFromReplay(readReplay(fr.result));}catch(e){replayMsg('<div class="err">'+esc(e.message)+'</div>');return;}
+    if(!h){replayMsg('<div class="err">No homunculus status in this replay. Start recording first, then change map or use Call Homunculus.</div>');return;}
+    var t=h.type||state.type;
+    save();setType(t);
+    var vals={lvl:h.level,atk:h.atk,matk:h.matk,hit:h.hit,crit:h.crit,def:h.def,mdef:h.mdef,flee:h.flee,
+      aspd:h.amotion>0?Math.floor((2000-h.amotion)/10):"",hp:h.maxhp,sp:h.maxsp};
+    Object.keys(vals).forEach(function(k){$(k).value=vals[k];});
+    $("passive").value=String(T[t].passive?h.pl:0);
+    rate();
+    var pct=h.expnext?(100*h.exp/h.expnext).toFixed(1):"0";
+    var rows='<b>Name</b><span>'+esc(h.name||"(no name)")+', level '+h.level+'</span>'+
+      '<b>Intimacy</b><span>'+h.intimacy+' / 1000 ('+intimacyName(h.intimacy)+')</span>'+
+      '<b>Exp</b><span>'+fmtN(h.exp)+' / '+fmtN(h.expnext)+' ('+pct+'%)</span>';
+    if(!h.type)rows+='<div class="msg">The replay doesn\'t say which homunculus this is, so it was rated as a '+T[t].name+'. Pick the right type above if that\'s wrong.</div>';
+    if(h.others.length)rows+='<div class="msg">This replay also has '+h.others.map(esc).join(", ")+'. Showing the last one.</div>';
+    replayMsg(rows);
+  };
+  fr.onerror=function(){replayMsg('<div class="err">That file couldn\'t be read.</div>');};
+  fr.readAsArrayBuffer(file);
+}
+$("rrf").addEventListener("change",function(){useReplay(this.files[0]);this.value="";});
+(function(){var z=$("replayDrop");
+  ["dragenter","dragover"].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.add("drag");});});
+  ["dragleave","drop"].forEach(function(ev){z.addEventListener(ev,function(e){e.preventDefault();z.classList.remove("drag");});});
+  z.addEventListener("drop",function(e){var f=e.dataTransfer&&e.dataTransfer.files[0];useReplay(f);});})();
+document.querySelectorAll(".types button").forEach(function(btn){btn.addEventListener("click",function(){replayMsg("");});});
+$("reset").addEventListener("click",function(){replayMsg("");});
 
 var saved=load();
 if(saved&&saved.per)per=saved.per;
